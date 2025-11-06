@@ -1,9 +1,10 @@
 const express = require('express');
-const { verificarToken } = require('../middlewares/authMiddleware');
+const authMiddleware = require("../middlewares/authMiddleware.js");
+
 const router = express.Router();
 
-router.get('/', verificarToken, (req, res) => {
-  return res.status(200).json([]);
+router.get('/', authMiddleware.verificarToken, (req, res) => {
+    res.json([]);
 });
 
 module.exports = router;

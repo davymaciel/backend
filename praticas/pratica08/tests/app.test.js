@@ -1,68 +1,84 @@
 const supertest = require("supertest");
 const app = require("../app");
+
 const request = supertest(app);
-const url = "/produtos";
 
-let token;
-
-describe("Teste ", () => {
-  test("GET /produtos deve retornar 401", async () => {
-    const response = await request.get(url);
+describe("/produtos", () => {
+  let authToken;
+  it('GET/produtos', async () => {
+    const response = await request.get("/produtos");
 
     expect(response.status).toBe(401);
-    expect(response.body.msg).toBe("Não Autorizado");
+    expect(response.headers["content-type"]).toContain("application/json");
+    expect(response.body).toHaveProperty("msg");
+    expect(response.body.msg).toBe("Não autorizado");
   });
 
-  test("GET /produtos com token inválido deve retornar 401", async () => {
-    const response = await request
-      .get("/produtos")
-      .set("authorization", "Bearer 12345678");
+  it('GET/produtos', async () => {
+    const tokenInvalido = "123456789";
+
+    const response = await request.get("/produtos").set("authorization", tokenInvalido);
 
     expect(response.status).toBe(401);
+    expect(response.headers["content-type"]).toContain("application/json");
     expect(response.body.msg).toBe("Token inválido");
   });
 
-  test("POST /usuarios/login deve retornar 200", async () => {
-    const response = await request.post("/usuarios/login").send({
-      usuario: "davy@gmail.com",
-      senha: "abc123",
-    });
+  it('POST/usuarios/login', async () => {
+    const credenciais = {
+      email: "email@exemplo.com",
+      senha: "abcd1234",
+    };
+
+    const response = await request.post('/usuarios/login').send(credenciais);
 
     expect(response.status).toBe(200);
-    expect(response.type).toBe("application/json");
+    expect(response.headers["content-type"]).toContain("application/json");
     expect(response.body).toHaveProperty("token");
 
-    token = response.body.token;
+    authToken = response.body.token;
   });
 
-  test("GET /produtos com token válido deve retornar 200", async () => {
+  it('GET/produtos', async () => {
+    if (!authToken) {
+      throw new Error("Token não foi obtido no teste de login.");
+    }
+
     const response = await request
-      .get(url)
-      .set("authorization", `Bearer ${token}`);
+      .get("/produtos")
+      .set("authorization", `Bearer ${authToken}`);
 
     expect(response.status).toBe(200);
-    expect(response.type).toBe("application/json");
+    expect(response.headers["content-type"]).toContain("application/json");
   });
 
-  test("POST /usuarios/renovar com token válido deve retornar 200", async () => {
+  it('POST/usuarios/renovar', async () => {
+    if (!authToken) {
+      throw new Error("Token não foi obtido no teste de login.");
+    }
+
     const response = await request
       .post("/usuarios/renovar")
-      .set("authorization", `Bearer ${token}`);
+      .set("authorization", `Bearer ${authToken}`);
 
     expect(response.status).toBe(200);
-    expect(response.type).toBe("application/json");
+    expect(response.headers["content-type"]).toContain("application/json");
     expect(response.body).toHaveProperty("token");
 
-    token = response.body.token;
+    authToken = response.body.token;
   });
 
-  test("GET /produtos com novo token deve retornar 200", async () => {
+  it('GET/produtos', async () => {
+    if (!authToken) {
+      throw new Error("Token renovado não foi obtido no teste anterior.");
+    }
+
     const response = await request
-      .get(url)
-      .set("authorization", `Bearer ${token}`);
+      .get("/produtos")
+      .set("authorization", `Bearer ${authToken}`);
 
     expect(response.status).toBe(200);
-    expect(response.type).toBe("application/json");
-
+    expect(response.headers["content-type"]).toContain("application/json");
+    expect(Array.isArray(response.body)).toBe(true);
   });
 });
